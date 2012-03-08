@@ -14,7 +14,6 @@
 #include "Configuration.h"
 #include "DOF.h"
 
-
 unsigned long timer;
 
 Server server(9999);
