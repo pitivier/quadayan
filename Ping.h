@@ -1,5 +1,5 @@
 
-const int PING_PIN = 3;
+#include "Configuration.h"
 
 int getDistance(Client client){
   long duration, cm;

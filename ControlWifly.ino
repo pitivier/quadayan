@@ -1,28 +1,29 @@
 /*
- * Web Server
- *
- * (Based on Ethernet's WebServer Example)
- *
- * A simple web server that shows the value of the analog input pins.
+ *  Wifly shield server
+ *  
  */
+ 
 #include <Wire.h>
 
 #include "WiFly.h"
 #include "Credentials.h"
 #include "Command.h"
 #include "Ping.h"
-#include "Configuration.h"
 #include "DOF.h"
+#include "Configuration.h"
+
+
+
 
 unsigned long timer;
 
 Server server(9999);
 
 void setup() {
-  pinMode(ledPin,OUTPUT);
-  pinMode(yellowPin,OUTPUT);
+  pinMode(RED_PIN,OUTPUT);
+  pinMode(YELLOW_PIN,OUTPUT);
 
-  digitalWrite(ledPin,HIGH);
+  digitalWrite(RED_PIN,HIGH);
   
   
   /*** GYROS ***/
@@ -31,6 +32,10 @@ void setup() {
 
   initializeGyro();
   calibrateGyro();
+  
+  initializeAccel();
+  computeAccelBias();
+  
   timer = millis();
   
   /*** FIN GYROS ***/
@@ -44,7 +49,9 @@ void setup() {
   }
 
   server.begin();
-  digitalWrite(ledPin,LOW);
+  
+  // server ready
+  digitalWrite(RED_PIN,LOW);
 }
 
 void loop() {
@@ -52,7 +59,7 @@ void loop() {
   if (client) {
     client.println("connected \n");
     client.flush();
-    digitalWrite(ledPin,HIGH);
+    digitalWrite(RED_PIN,HIGH);
 
     boolean current_line_is_blank = true;
     while (client.connected()) {
@@ -66,14 +73,14 @@ void loop() {
              case CMD_PING :   getDistance(client);
                                break;
              
-             case 'c' :        digitalWrite(yellowPin,HIGH);
+             case 'c' :        digitalWrite(YELLOW_PIN,HIGH);
                                client.print("received : ");
                                client.print(cmd);
                                client.println("\n");
                                client.flush();
                                break;
                                
-             case 'd':         digitalWrite(yellowPin,LOW);
+             case 'd':         digitalWrite(YELLOW_PIN,LOW);
                                client.print("received : ");
                                client.print(cmd);
                                client.println("\n");
@@ -86,19 +93,38 @@ void loop() {
                                  client.print(analogRead(i));  
                                }
                                
-             case 's':         timer = millis();
-                               measureGyro();
-                                
-                               client.print("Roll: ");
-                               client.print(degrees(gyroRate[XAXIS]));
-                               client.print(" Pitch: ");
-                               client.print(degrees(gyroRate[YAXIS]));
-                               client.print(" Yaw: ");
-                               client.print(degrees(gyroRate[ZAXIS]));
-                               client.print(" Heading: ");
-                               client.print(degrees(gyroHeading));
-                               client.println();
-                               break;
+             case CMD_SENSOR_STICK_GYROS:  timer = millis();
+                                           measureGyro();
+                                            
+                                           //client.print("Roll: ");
+                                           client.print(degrees(gyroRate[XAXIS]));
+                                           //client.print(" Pitch: ");
+                                           client.print(";");
+                                           client.print(degrees(gyroRate[YAXIS]));
+                                           //client.print(" Yaw: ");
+                                           client.print(";");
+                                           client.print(degrees(gyroRate[ZAXIS]));
+                                           //client.print(" Heading: ");
+                                           client.print(";");
+                                           client.print(degrees(gyroHeading));
+                                           client.println();
+                                           break;
+                                           
+             case CMD_SENSOR_STICK_ACCEL:  timer = millis();
+                                           measureAccel();
+                                          
+                                           client.print("Roll: ");
+                                           client.print(meterPerSecSec[XAXIS]);
+                                           client.print(" Pitch: ");
+                                           client.print(meterPerSecSec[YAXIS]);
+                                           client.print(" Yaw: ");
+                                           client.print(meterPerSecSec[ZAXIS]);
+                                           client.println();
+                                           break;
+                             
+             case CMD_INIT_SENSOR_STICK : calibrateGyro();
+                                          timer = millis();
+                                          break;
                              
              default:          break;
            }
@@ -111,8 +137,8 @@ void loop() {
     }
     delay(100);
     client.stop();
-    digitalWrite(yellowPin,LOW);
-    digitalWrite(ledPin,LOW);
+    digitalWrite(YELLOW_PIN,LOW);
+    digitalWrite(RED_PIN,LOW);
   }
 }
 
